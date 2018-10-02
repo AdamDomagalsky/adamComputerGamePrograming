@@ -10,63 +10,66 @@
 #include "Render_Utils.h"
 #include "Camera.h"
 #include "Texture.h"
+#include "main.h"
 
-GLuint programColor;
-GLuint programTexture;
-GLuint programSkybox;
-GLuint programDepth;
-GLuint programShadow;
-GLuint programTextureNorm;
-GLuint programTextureBasic;
+GLuint 
+	programColor,
+	programTexture,
+	programSkybox,
+	programDepth,
+	programShadow,
+	programTextureNorm,
+	programTextureBasic,
+	depthTexture,
+	textureEarth,
+	textureEarthNormal,
+	textureAsteroid,
+	cubemapTexture,
+	FramebufferObject;
+
 
 const int font = (int)GLUT_BITMAP_9_BY_15;
-int w, h;
+int w, h, cubeMapID, sign = 1, pointCounter = 0, indexPath = 0;//t % shipPath.size();
+
 char s[30];
 double t;
 
-Core::Shader_Loader shaderLoader;
-
-int cubeMapID;
-
-obj::Model shipModel;
-obj::Model sphereModel;
-obj::Model renderModel;
-obj::Model coinModel;
-
-GLuint depthTexture;
-GLuint textureEarth;
-GLuint textureEarthNormal;
-GLuint FramebufferObject;
-
-glm::mat4 lightProjection;
-glm::mat4 lightView;
-
-//Camera
-float cameraAngleX = 4.7;
-float cameraAngleY = 5;
-float cameraAngle = 0;
-glm::vec3 cameraPos = glm::vec3(-5, -1, 10);
-glm::vec3 cameraDir;
-glm::mat4 cameraMatrix, perspectiveMatrix;
-float yaw = 0.0;
-float pitch = 0.0;
-float roll = 0.0;
-
-float oldX = 0;
-float oldY = 0;;
-
 std::vector<float> tangent(1203);
-
-glm::vec3 lightDir = glm::normalize(glm::vec3(1.0f, -0.9f, -1.0f));
-
+std::vector<glm::vec4> planets;
+std::vector<glm::vec3> coins, shipPath;
 bool state = true;
 
-glm::vec3 circle_points[220]; //wektor punktów do naszej krzywej
-glm::mat4 rotations[220]; //macierz rotacji BNT - wzd³u¿ krzywej
-int pointCounter = 0;
-glm::vec3 ship_pos;
+Core::Shader_Loader shaderLoader;
 
-//nasze piêkne cz¹steczki
+
+obj::Model 
+	shipModel,
+	sphereModel,
+	renderModel,
+	coinModel;
+
+
+//Camera
+float cameraAngleX = 4.7, cameraAngleY = 5,
+	yaw = 0.0, pitch = 0.0, roll = 0.0, 
+	oldX = 0.0, oldY = 0.0, cameraAngle = 0.0;
+
+glm::vec3 cameraPos(-5, -1, 10), cameraDir(0.0f),
+	ship_pos,
+	points[220],
+	lightDir = glm::normalize(glm::vec3(1.0f, -0.9f, -1.0f)),
+	circle_points[220];//wektor punktï¿½w do naszej krzywej
+
+
+glm::mat4 cameraMatrix(0.0f),
+	lightProjection, 
+	lightView,
+	perspectiveMatrix(0.0f), 
+	rotations[220]; //macierz rotacji BNT - wzdï¿½uï¿½ krzywej
+
+
+
+//nasze piï¿½kne czï¿½steczki
 struct Particle {
 	glm::vec3 pos;
 	glm::quat rot;
@@ -82,21 +85,6 @@ struct Particle {
 
 std::vector<Particle> spaceships;
 
-glm::mat4 createTranslationMatrixXYZ(float X, float Y, float Z) {
-	glm::mat4 translationMatrix;
-	translationMatrix[3][0] = X;
-	translationMatrix[3][1] = Y;
-	translationMatrix[3][2] = Z;
-	return translationMatrix;
-}
-
-GLuint textureAsteroid, xpos, xneg, ypos, yneg, zpos, zneg;
-
-GLuint cubemapTexture;
-
-std::vector<glm::vec4> planets;
-std::vector<glm::vec3> coins;
-glm::vec3 points[220];
 
 const float cubeVertices[] = {
 	30.5f, 30.5f, 30.5f, 1.0f,
@@ -147,7 +135,6 @@ const float cubeVertices[] = {
 	-30.5f, -30.5f, -30.5f, 1.0f,
 	-30.5f, -30.5f, 30.5f, 1.0f,
 };
-
 
 void mouseMove(int x, int y)
 {
@@ -222,7 +209,6 @@ void drawObjectColor(obj::Model * model, glm::mat4 modelMatrix, glm::vec3 color)
 
 	glUseProgram(0);
 }
-
 void drawObjectTexture(obj::Model * model, glm::mat4 modelMatrix, GLuint textureId)
 {
 	GLuint program = programTexture;
@@ -241,7 +227,6 @@ void drawObjectTexture(obj::Model * model, glm::mat4 modelMatrix, GLuint texture
 
 	glUseProgram(0);
 }
-
 void drawObjectDepth(obj::Model * model, glm::mat4 modelMatrix, glm::mat4 projMatrix, glm::mat4 inverseLightMatrix)
 {
 	GLuint program = programDepth;
@@ -255,7 +240,6 @@ void drawObjectDepth(obj::Model * model, glm::mat4 modelMatrix, glm::mat4 projMa
 
 	glUseProgram(0);
 }
-
 void drawObjectShadow(obj::Model * model, glm::mat4 modelMatrix, glm::mat4 projMatrix, glm::mat4 lightMatrix, GLuint textureId, GLuint depthTexture)
 {
 	GLuint program = programShadow;
@@ -295,7 +279,6 @@ void drawObjectTextureBasic(obj::Model * model, glm::mat4 modelMatrix, GLuint te
 
 	glUseProgram(0);
 }
-
 void drawObjectTextureNormal(obj::Model * model, glm::mat4 modelMatrix, GLuint textureId, GLuint normalMap)
 {
 	GLuint program = programTextureNorm;
@@ -317,7 +300,6 @@ void drawObjectTextureNormal(obj::Model * model, glm::mat4 modelMatrix, GLuint t
 
 	glUseProgram(0);
 }
-
 void drawSkybox(GLuint cubemapID) 
 {
 	GLuint program = programSkybox;
@@ -337,7 +319,7 @@ void drawSkybox(GLuint cubemapID)
 	glUseProgram(0);
 }
 
-//wyznaczenie punktów na okrêgu
+//wyznaczenie punktï¿½w na okrï¿½gu
 void drawCircle(GLfloat x, GLfloat y, GLfloat z, GLfloat radius, GLint numberOfSides)
 {
 	GLint numberOfVertices = numberOfSides + 1;
@@ -363,7 +345,7 @@ void drawCircle(GLfloat x, GLfloat y, GLfloat z, GLfloat radius, GLint numberOfS
 	}
 }
 
-//wyznaczenie wektorów BNT
+//wyznaczenie wektorï¿½w BNT
 void parallel_transport() {
 	glm::vec3 tangent[220];
 	glm::vec3 normal[220];
@@ -403,16 +385,6 @@ void parallel_transport() {
 	}
 }
 
-//find distance between two points
-float find_distance(glm::vec3 A, glm::vec3 B) {
-	float dx, dy, dz, d;
-	dx = A.x - B.x;
-	dy = A.y - B.y;
-	dz = A.z - B.z;
-	d = pow(dx, 2) + pow(dy, 2) + pow(dz, 2);
-	return sqrt(d);
-}
-
 void setOrthographicProjection() {
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
@@ -432,26 +404,6 @@ void renderBitmapString(float x, float y, void *font, const char *string) {
 	glRasterPos2f(x, y);
 	for (c = string; *c != '\0'; c++) {
 		glutBitmapCharacter(font, *c);
-	}
-}
-
-void catmull_rom_spline(const std::vector<glm::vec3>& cp, float t, int points_in)
-{
-
-	float step = 1.0 / (float)points_in;
-	// indices of the relevant control points
-	int i0 = glm::clamp<int>(t - 1, 0, cp.size() - 1);
-	int i1 = glm::clamp<int>(t, 0, cp.size() - 1);
-	int i2 = glm::clamp<int>(t + 1, 0, cp.size() - 1);
-	int i3 = glm::clamp<int>(t + 2, 0, cp.size() - 1);
-
-	// parameter on the local curve interval
-	float local_t = glm::fract(t);
-
-	for (int j = 1; j < points_in; j++)
-	{
-		points[j] = glm::catmullRom(cp[i0], cp[i1], cp[i2], cp[i3], local_t);
-		local_t += step;
 	}
 }
 
@@ -475,14 +427,6 @@ void update(int value) {
 	glutPostRedisplay();
 }
 
-glm::mat4 createRotationMatrix(float time) {
-	glm::mat4 rotationMatrix;
-	rotationMatrix[0][0] = cos(time);
-	rotationMatrix[0][2] = -sin(time);
-	rotationMatrix[2][0] = sin(time);
-	rotationMatrix[2][2] = cos(time);
-	return rotationMatrix;
-}
 
 void initialise_particles(int qty)
 {
@@ -496,8 +440,11 @@ void initialise_particles(int qty)
 	}
 }
 
+
+
 void renderScene()
 {
+
 
 	if (state && coins.size() != 0) {
 		float time = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
@@ -525,10 +472,22 @@ void renderScene()
 
 
 		// Macierz statku "przyczepia" go do kamery. Warto przeanalizowac te linijke i zrozumiec jak to dziala.
+		if (indexPath == 0) {
+			sign = 1;
+			//printf("%s\n", "true");
+		}
+		else if (indexPath == shipPath.size() - 1) {
+			//printf("%s\n", "false");
+			sign = -1;
+		}
 		glm::mat4 mainShipModelMatrix = glm::translate(cameraPos + cameraDir * 0.5f + glm::vec3(5, 4.6, 4.7)) * glm::rotate(-cameraAngle + glm::radians(180.0f), glm::vec3(0, 1, 0)) * glm::scale(glm::vec3(0.25f));
 		glm::vec3 mainShipPosition = mainShipModelMatrix[3];
+		shipPath = generatePoints(glm::vec4(0, 0, 0, 0), glm::vec4(5, 0, 5, 0), glm::vec4(22, 0, 22, 0), glm::vec4(25, 0, 25, 0), 0.001);
+
 		ship_pos = glm::vec3(circle_points[pointCounter % 220].x, circle_points[pointCounter % 220].y, circle_points[pointCounter % 220].z);
-		glm::mat4 shipModelMatrix = glm::translate(glm::vec3(ship_pos.x, ship_pos.y, ship_pos.z)) * rotations[pointCounter % 220];
+		//glm::mat4 shipModelMatrix = glm::translate(glm::vec3(ship_pos.x, ship_pos.y, ship_pos.z)) * rotations[pointCounter % 220];
+		glm::mat4 shipModelMatrix = glm::translate(shipPath[indexPath]) * glm::rotate(glm::radians(90.0f), glm::vec3(0, 1, 0)) * glm::scale(glm::vec3(0.25f));
+
 		drawObjectColor(&shipModel, shipModelMatrix, glm::vec3(0.7f, 0.0f, 0.0f));
 		drawObjectColor(&shipModel, mainShipModelMatrix, glm::vec3(0.7f, 0.7f, 0.7f));
 		pointCounter++;
@@ -545,7 +504,7 @@ void renderScene()
 				drawObjectColor(&coinModel, coinModelMatrix, glm::vec3(1.0f, 1.0f, 0.0f));
 		}
 
-		//przemieszczanie stateczków
+		//przemieszczanie stateczkï¿½w
 		for (int i = 0; i < spaceships.size(); i++)
 		{
 			glm::mat4 shipModelMatrix = glm::translate(spaceships[i].pos) * rotations[pointCounter % 220] * glm::scale(glm::vec3(0.10f));
@@ -640,9 +599,7 @@ void renderScene()
 			if (dps < 2)
 				state = false;
 		}
-	}
-
-	else if (coins.size() == 0) {
+	} else if (coins.size() == 0) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glClearColor(0.0f, 0.3f, 0.3f, 1.0f);
 
@@ -653,11 +610,9 @@ void renderScene()
 		renderBitmapString(450, 512, (void *)font, "WON!!!");
 		glPopMatrix();
 		resetPerspectiveProjection();
-	}
-
-	//print 'game over'
-	else {
+	} else {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 		glClearColor(0.0f, 0.3f, 0.3f, 1.0f);
 
 		glColor3d(1.0, 1.0, 1.0);
@@ -668,6 +623,8 @@ void renderScene()
 		glPopMatrix();
 		resetPerspectiveProjection();
 	}
+
+	indexPath += sign;
 
 	glutSwapBuffers();
 }
@@ -692,8 +649,8 @@ void init()
 	textureEarthNormal = Core::LoadTexture("textures/earth_normalmap.png");
 	cubeMapID = Core::setupCubeMap("textures/xpos.png", "textures/xneg.png", "textures/ypos.png", "textures/yneg.png", "textures/zpos.png", "textures/zneg.png");
 
-	std::vector<float> unitY = { 0.0, 1.0, 0.0 };
-	std::vector<float> unitX = { 1.0, 0.0, 0.0 };
+	//std::vector<float> unitY = { 0.0, 1.0, 0.0 };
+	//std::vector<float> unitX = { 1.0, 0.0, 0.0 };
 
 	glm::vec3 uY = { 0.0, -1.0, 0.0 };
 	glm::vec3 uX = { -1.0, 0.0, 0.0 };
