@@ -867,3 +867,4 @@ inline bool Particla::intersect(Particla b) {
 		(getMinZ() <= b.getMaxZ() && getMaxZ() >= b.getMinZ());
 }
 
+int Particla::counterID = 0;
