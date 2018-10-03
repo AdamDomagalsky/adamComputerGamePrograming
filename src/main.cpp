@@ -11,6 +11,10 @@
 #include "Camera.h"
 #include "Texture.h"
 #include "main.h"
+#include "Particle.h"
+#include "cubeArr.hpp"
+
+
 
 GLuint 
 	programColor,
@@ -85,56 +89,6 @@ struct Particle {
 
 std::vector<Particle> spaceships;
 
-
-const float cubeVertices[] = {
-	30.5f, 30.5f, 30.5f, 1.0f,
-	30.5f, -30.5f, 30.5f, 1.0f,
-	-30.5f, 30.5f, 30.5f, 1.0f,
-
-	30.5f, -30.5f, 30.5f, 1.0f,
-	-30.5f, -30.5f, 30.5f, 1.0f,
-	-30.5f, 30.5f, 30.5f, 1.0f,
-
-	30.5f, 30.5f, -30.5f, 1.0f,
-	-30.5f, 30.5f, -30.5f, 1.0f,
-	30.5f, -30.5f, -30.5f, 1.0f,
-
-	30.5f, -30.5f, -30.5f, 1.0f,
-	-30.5f, 30.5f, -30.5f, 1.0f,
-	-30.5f, -30.5f, -30.5f, 1.0f,
-
-	-30.5f, 30.5f, 30.5f, 1.0f,
-	-30.5f, -30.5f, 30.5f, 1.0f,
-	-30.5f, -30.5f, -30.5f, 1.0f,
-
-	-30.5f, 30.5f, 30.5f, 1.0f,
-	-30.5f, -30.5f, -30.5f, 1.0f,
-	-30.5f, 30.5f, -30.5f, 1.0f,
-
-	30.5f, 30.5f, 30.5f, 1.0f,
-	30.5f, -30.5f, -30.5f, 1.0f,
-	30.5f, -30.5f, 30.5f, 1.0f,
-
-	30.5f, 30.5f, 30.5f, 1.0f,
-	30.5f, 30.5f, -30.5f, 1.0f,
-	30.5f, -30.5f, -30.5f, 1.0f,
-
-	30.5f, 30.5f, -30.5f, 1.0f,
-	30.5f, 30.5f, 30.5f, 1.0f,
-	-30.5f, 30.5f, 30.5f, 1.0f,
-
-	30.5f, 30.5f, -30.5f, 1.0f,
-	-30.5f, 30.5f, 30.5f, 1.0f,
-	-30.5f, 30.5f, -30.5f, 1.0f,
-
-	30.5f, -30.5f, -30.5f, 1.0f,
-	-30.5f, -30.5f, 30.5f, 1.0f,
-	30.5f, -30.5f, 30.5f, 1.0f,
-
-	30.5f, -30.5f, -30.5f, 1.0f,
-	-30.5f, -30.5f, -30.5f, 1.0f,
-	-30.5f, -30.5f, 30.5f, 1.0f,
-};
 
 void mouseMove(int x, int y)
 {
@@ -497,7 +451,7 @@ void renderScene()
 		for (int i = 0; i < coins.size(); i++)
 		{
 			glm::mat4 coinModelMatrix = glm::translate(coins[i]) * createRotationMatrix(time / 2) * glm::translate(glm::vec3(-3, 0, 0)) * glm::scale(glm::vec3(0.10f));
-			float d = find_distance(coins[i], mainShipPosition + glm::vec3(0, -2.5, 0));
+			float d = findDistance(coins[i], mainShipPosition + glm::vec3(0, -2.5, 0));
 			if (d < 1)
 				coins.erase(std::find(coins.begin(), coins.end(), coins[i]));
 			else
@@ -585,17 +539,17 @@ void renderScene()
 		drawSkybox(cubeMapID);
 
 		//collision detection
-		float dp = find_distance(planetPosition, mainShipPosition);
-		float ds = find_distance(ship_pos, mainShipPosition);
+		float dp = findDistance(planetPosition, mainShipPosition);
+		float ds = findDistance(ship_pos, mainShipPosition);
 		if (dp < 4 || ds < 2)
 			state = false;
 		for (int i = 0; i < spaceships.size(); i++) {
-			float dss = find_distance(spaceships[i].pos, mainShipPosition);
+			float dss = findDistance(spaceships[i].pos, mainShipPosition);
 			if (dss < 1)
 				state = false;
 		}
 		for (int i = 0; i < 3; i++) {
-			float dps = find_distance(planets[i], mainShipPosition);
+			float dps = findDistance(planets[i], mainShipPosition);
 			if (dps < 2)
 				state = false;
 		}
@@ -674,10 +628,10 @@ void init()
 	for (int i = 0; i < 3; i++)
 	{
 		glm::vec3 position = glm::ballRand(30.0f);
-		float d = find_distance(glm::vec3(-1, 2, -1), position);
+		float d = findDistance(glm::vec3(-1, 2, -1), position);
 		while (d < 2) {
 			position = glm::ballRand(30.0f);
-			d = find_distance(glm::vec3(-1, 2, -1), position);
+			d = findDistance(glm::vec3(-1, 2, -1), position);
 		}
 		float scale = glm::linearRand(1.5f, 1.0f);
 		planets.push_back(glm::vec4(position, scale));
@@ -689,13 +643,13 @@ void init()
 		float ypos = glm::linearRand(-4.0f, 10.0f);
 		float zpos = glm::linearRand(-10.0f, 10.0f);
 		glm::vec3 position = glm::vec3(xpos, ypos, zpos);
-		float d = find_distance(glm::vec3(-1, 2, -1), position);
+		float d = findDistance(glm::vec3(-1, 2, -1), position);
 		while (d < 2) {
 			xpos = glm::linearRand(-10.0f, 10.0f);
 			ypos = glm::linearRand(-4.0f, 10.0f);
 			zpos = glm::linearRand(-10.0f, 10.0f);
 			position = glm::vec3(xpos, ypos, zpos);
-			d = find_distance(glm::vec3(-1, 2, -1), position);
+			d = findDistance(glm::vec3(-1, 2, -1), position);
 		}
 		coins.push_back(position);
 	}
@@ -745,10 +699,10 @@ int main(int argc, char ** argv)
 
 	glutInit(&argc, argv);
 
-	glutInitWindowPosition(200, 200);
+	glutInitWindowPosition(0, 0);
 	glutInitWindowSize(1024, 1024);
 	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
-	glutCreateWindow("Niezwykle zaawansowana symulacja graficzna");
+	glutCreateWindow("CGP");
 	glutReshapeFunc(resize);
 	glewInit();
 
@@ -766,3 +720,55 @@ int main(int argc, char ** argv)
 
 
 }
+
+/*
+const float cubeVertices[] = {
+	30.5f, 30.5f, 30.5f, 1.0f,
+	30.5f, -30.5f, 30.5f, 1.0f,
+	-30.5f, 30.5f, 30.5f, 1.0f,
+
+	30.5f, -30.5f, 30.5f, 1.0f,
+	-30.5f, -30.5f, 30.5f, 1.0f,
+	-30.5f, 30.5f, 30.5f, 1.0f,
+
+	30.5f, 30.5f, -30.5f, 1.0f,
+	-30.5f, 30.5f, -30.5f, 1.0f,
+	30.5f, -30.5f, -30.5f, 1.0f,
+
+	30.5f, -30.5f, -30.5f, 1.0f,
+	-30.5f, 30.5f, -30.5f, 1.0f,
+	-30.5f, -30.5f, -30.5f, 1.0f,
+
+	-30.5f, 30.5f, 30.5f, 1.0f,
+	-30.5f, -30.5f, 30.5f, 1.0f,
+	-30.5f, -30.5f, -30.5f, 1.0f,
+
+	-30.5f, 30.5f, 30.5f, 1.0f,
+	-30.5f, -30.5f, -30.5f, 1.0f,
+	-30.5f, 30.5f, -30.5f, 1.0f,
+
+	30.5f, 30.5f, 30.5f, 1.0f,
+	30.5f, -30.5f, -30.5f, 1.0f,
+	30.5f, -30.5f, 30.5f, 1.0f,
+
+	30.5f, 30.5f, 30.5f, 1.0f,
+	30.5f, 30.5f, -30.5f, 1.0f,
+	30.5f, -30.5f, -30.5f, 1.0f,
+
+	30.5f, 30.5f, -30.5f, 1.0f,
+	30.5f, 30.5f, 30.5f, 1.0f,
+	-30.5f, 30.5f, 30.5f, 1.0f,
+
+	30.5f, 30.5f, -30.5f, 1.0f,
+	-30.5f, 30.5f, 30.5f, 1.0f,
+	-30.5f, 30.5f, -30.5f, 1.0f,
+
+	30.5f, -30.5f, -30.5f, 1.0f,
+	-30.5f, -30.5f, 30.5f, 1.0f,
+	30.5f, -30.5f, 30.5f, 1.0f,
+
+	30.5f, -30.5f, -30.5f, 1.0f,
+	-30.5f, -30.5f, -30.5f, 1.0f,
+	-30.5f, -30.5f, 30.5f, 1.0f,
+};
+*/

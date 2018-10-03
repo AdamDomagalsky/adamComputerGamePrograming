@@ -18,7 +18,7 @@ glm::mat4 createTranslationMatrixXYZ(float X, float Y, float Z) {
 }
 
 //find distance between two points
-float find_distance(glm::vec3 A, glm::vec3 B) {
+float findDistance(glm::vec3 A, glm::vec3 B) {
 	float dx, dy, dz, d;
 	dx = A.x - B.x;
 	dy = A.y - B.y;

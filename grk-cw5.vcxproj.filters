@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{2276314f-8861-427b-a69e-d646ed739cdc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Render_Utils.cpp">
@@ -36,6 +39,15 @@
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Particle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cubeArr.hpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cubeArr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Render_Utils.h">
@@ -53,5 +65,63 @@
     <ClInclude Include="src\Texture.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\main.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Particle.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="CGP.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\shader_basic.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\shader_basic.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\shader_color.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\shader_color.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\shader_depth.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\shader_depth.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\shader_norm.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\shader_norm.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\shader_shadow.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\shader_shadow.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\shader_tex.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\shader_tex.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\sky_box.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\sky_box.vert">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>
