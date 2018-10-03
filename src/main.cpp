@@ -88,7 +88,7 @@ struct Particle {
 };
 
 std::vector<Particle> spaceships;
-
+std::vector<Particla> spaceshipa;
 
 void mouseMove(int x, int y)
 {
@@ -381,6 +381,7 @@ void update(int value) {
 	glutPostRedisplay();
 }
 
+int shipWidth = 1, shipHeight = 1, shipDepth = 1;
 
 void initialise_particles(int qty)
 {
@@ -395,10 +396,11 @@ void initialise_particles(int qty)
 }
 
 
+int oldTimeSinceStart = 0;
 
 void renderScene()
 {
-
+	glm::vec3 sum = glm::vec3(0);
 
 	if (state && coins.size() != 0) {
 		float time = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
@@ -450,12 +452,12 @@ void renderScene()
 		//dodanie naszych monetek
 		for (int i = 0; i < coins.size(); i++)
 		{
-			glm::mat4 coinModelMatrix = glm::translate(coins[i]) * createRotationMatrix(time / 2) * glm::translate(glm::vec3(-3, 0, 0)) * glm::scale(glm::vec3(0.10f));
+			glm::mat4 coinModelMatrix = glm::translate(coins[i]) * createRotationMatrix(time / 2) * glm::translate(glm::vec3(-3, 0, 0)) * glm::scale(glm::vec3(0.90f));
 			float d = findDistance(coins[i], mainShipPosition + glm::vec3(0, -2.5, 0));
 			if (d < 1)
 				coins.erase(std::find(coins.begin(), coins.end(), coins[i]));
 			else
-				drawObjectColor(&coinModel, coinModelMatrix, glm::vec3(1.0f, 1.0f, 0.0f));
+				drawObjectColor(&coinModel, coinModelMatrix, glm::vec3(1.0f, 1.0f, 1.0f));
 		}
 
 		//przemieszczanie stateczk�w
@@ -553,7 +555,8 @@ void renderScene()
 			if (dps < 2)
 				state = false;
 		}
-	} else if (coins.size() == 0) {
+	} else 
+	if (coins.size() == 0) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glClearColor(0.0f, 0.3f, 0.3f, 1.0f);
 
@@ -578,6 +581,37 @@ void renderScene()
 		resetPerspectiveProjection();
 	}
 
+
+	for (int j = 0; j < spaceships.size(); j++)
+	{
+		sum += spaceships[j].vel;
+	}
+
+	for (int i = 0; i < spaceships.size(); i++)
+	{
+		float weightV1 = 0.00001;
+		float weightV2 = 0.0011;
+		float weightV3 = 0.001;
+		glm::vec3 v3 = glm::vec3(0);
+
+		glm::vec3 v1Attract = glm::normalize(shipPath[indexPath] - spaceships[i].pos);
+		//glm::vec3 v2Separation = separationV2(spaceships[i]);
+		//glm::vec3 v3Alignment = ((sum / spaceships.size()) - spaceships[i].vel);
+		spaceships[i].vel += (weightV1 * v1Attract) /*+ (weightV2 * v2Separation) + (weightV3 * v3Alignment)*/;
+		spaceships[i].pos += spaceships[i].vel;
+		//printf("x%d\n", spaceships[i].pos.x);
+		//printf("y%d\n", spaceships[i].pos.y);
+	}
+	int timeSinceStart = glutGet(GLUT_ELAPSED_TIME);
+	int deltaTime = timeSinceStart - oldTimeSinceStart;
+	oldTimeSinceStart = timeSinceStart;
+	/*for (int j = 0; j < bullets.size(); j++) {
+		bullets[j].pos += bullets[j].particleDir * 0.05 * deltaTime;
+	}
+	for (int j = 0; j < explodeParticles.size(); j++) {
+		explodeParticles[j].pos += explodeParticles[j].particleDir * 0.0005 * deltaTime;
+	}*/
+
 	indexPath += sign;
 
 	glutSwapBuffers();
@@ -598,7 +632,7 @@ void init()
 	shipModel = obj::loadModelFromFile("models/spaceship.obj");
 	textureAsteroid = Core::LoadTexture("textures/asteroid2.png");
 	renderModel = obj::loadModelFromFile("models/render.obj");
-	coinModel = obj::loadModelFromFile("models/coin.obj");
+	coinModel = obj::loadModelFromFile("models/oldcoin.obj");
 	textureEarth = Core::LoadTexture("textures/earth.png");
 	textureEarthNormal = Core::LoadTexture("textures/earth_normalmap.png");
 	cubeMapID = Core::setupCubeMap("textures/xpos.png", "textures/xneg.png", "textures/ypos.png", "textures/yneg.png", "textures/zpos.png", "textures/zneg.png");
@@ -717,58 +751,4 @@ int main(int argc, char ** argv)
 	shutdown();
 
 	return 0;
-
-
 }
-
-/*
-const float cubeVertices[] = {
-	30.5f, 30.5f, 30.5f, 1.0f,
-	30.5f, -30.5f, 30.5f, 1.0f,
-	-30.5f, 30.5f, 30.5f, 1.0f,
-
-	30.5f, -30.5f, 30.5f, 1.0f,
-	-30.5f, -30.5f, 30.5f, 1.0f,
-	-30.5f, 30.5f, 30.5f, 1.0f,
-
-	30.5f, 30.5f, -30.5f, 1.0f,
-	-30.5f, 30.5f, -30.5f, 1.0f,
-	30.5f, -30.5f, -30.5f, 1.0f,
-
-	30.5f, -30.5f, -30.5f, 1.0f,
-	-30.5f, 30.5f, -30.5f, 1.0f,
-	-30.5f, -30.5f, -30.5f, 1.0f,
-
-	-30.5f, 30.5f, 30.5f, 1.0f,
-	-30.5f, -30.5f, 30.5f, 1.0f,
-	-30.5f, -30.5f, -30.5f, 1.0f,
-
-	-30.5f, 30.5f, 30.5f, 1.0f,
-	-30.5f, -30.5f, -30.5f, 1.0f,
-	-30.5f, 30.5f, -30.5f, 1.0f,
-
-	30.5f, 30.5f, 30.5f, 1.0f,
-	30.5f, -30.5f, -30.5f, 1.0f,
-	30.5f, -30.5f, 30.5f, 1.0f,
-
-	30.5f, 30.5f, 30.5f, 1.0f,
-	30.5f, 30.5f, -30.5f, 1.0f,
-	30.5f, -30.5f, -30.5f, 1.0f,
-
-	30.5f, 30.5f, -30.5f, 1.0f,
-	30.5f, 30.5f, 30.5f, 1.0f,
-	-30.5f, 30.5f, 30.5f, 1.0f,
-
-	30.5f, 30.5f, -30.5f, 1.0f,
-	-30.5f, 30.5f, 30.5f, 1.0f,
-	-30.5f, 30.5f, -30.5f, 1.0f,
-
-	30.5f, -30.5f, -30.5f, 1.0f,
-	-30.5f, -30.5f, 30.5f, 1.0f,
-	30.5f, -30.5f, 30.5f, 1.0f,
-
-	30.5f, -30.5f, -30.5f, 1.0f,
-	-30.5f, -30.5f, -30.5f, 1.0f,
-	-30.5f, -30.5f, 30.5f, 1.0f,
-};
-*/
