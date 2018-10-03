@@ -39,13 +39,13 @@
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Particle.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\cubeArr.hpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\cubeArr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Particla.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -71,7 +71,7 @@
     <ClInclude Include="src\main.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Particle.h">
+    <ClInclude Include="Particla.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

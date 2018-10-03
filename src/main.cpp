@@ -5,14 +5,56 @@
 #include <cmath>
 #include <windows.h>
 #include <string.h>
-
+#include <cmath>
+#include <vector>
 #include "Shader_Loader.h"
 #include "Render_Utils.h"
 #include "Camera.h"
 #include "Texture.h"
 #include "main.h"
-#include "Particle.h"
 #include "cubeArr.hpp"
+
+#define min(a,b)            (((a) < (b)) ? (a) : (b))
+#define max(a,b)            (((a) > (b)) ? (a) : (b))
+//#include "Particle.h"
+//#include "Particle.cpp"
+class Particla
+{
+private:
+	float width;
+	float height;
+	float depth;
+	glm::vec3 shipColor = glm::vec3(0.5, 0.5, 0.5);
+	static int counterID;
+public:
+	glm::vec3 ParticlaDir;
+	float bornTime = 0;
+	float ParticlaLife = 2000;
+	int partID;
+	glm::vec3 pos;
+	glm::vec3 vel;
+	glm::quat rot;
+
+	Particla(glm::vec3 pos, float width, float height, float depth);
+	Particla(glm::vec3 ParticlaDir, glm::vec3 pos, float width, float height, float depth);
+	glm::vec3 getShipColor();
+	glm::vec3 getParticlaDir();
+	float getMinX();
+
+	float getMinY();
+
+	float getMinZ();
+
+	float getMaxX();
+
+	float getMaxY();
+
+	float getMaxZ();
+
+	void setColorColided(bool isColliding);
+
+	bool intersect(Particla  b);
+};
 
 
 
@@ -88,6 +130,7 @@ struct Particle {
 };
 
 std::vector<Particle> spaceships;
+
 std::vector<Particla> spaceshipa;
 
 void mouseMove(int x, int y)
@@ -382,10 +425,16 @@ void update(int value) {
 }
 
 int shipWidth = 1, shipHeight = 1, shipDepth = 1;
+float WDH = 1.0f;
 
 void initialise_particles(int qty)
 {
+	for (int i = 1; i <= 10; i++) {
+		Particla enemy(glm::vec3(1 + i, i + 1, 1 + i), WDH, WDH, WDH);
+		spaceshipa.push_back(enemy);
+	}
 	for (int i = 0; i < qty; i++) {
+
 		Particle x;
 		x.pos.x = -2.0 + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (2.0 - (-2.0))));
 		x.pos.y = -2.0 + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (2.0 - (-2.0))));
@@ -452,7 +501,7 @@ void renderScene()
 		//dodanie naszych monetek
 		for (int i = 0; i < coins.size(); i++)
 		{
-			glm::mat4 coinModelMatrix = glm::translate(coins[i]) * createRotationMatrix(time / 2) * glm::translate(glm::vec3(-3, 0, 0)) * glm::scale(glm::vec3(0.90f));
+			glm::mat4 coinModelMatrix = glm::translate(coins[i]) * createRotationMatrix(time / 2) * glm::translate(glm::vec3(-3, 0, 0)) * glm::scale(glm::vec3(2));
 			float d = findDistance(coins[i], mainShipPosition + glm::vec3(0, -2.5, 0));
 			if (d < 1)
 				coins.erase(std::find(coins.begin(), coins.end(), coins[i]));
@@ -752,3 +801,69 @@ int main(int argc, char ** argv)
 
 	return 0;
 }
+
+inline Particla::Particla(glm::vec3 pos, float width, float height, float depth) {
+	this->pos = pos;
+	this->width = width;
+	this->height = height;
+	this->depth = depth;
+	this->partID = counterID++;
+}
+
+inline Particla::Particla(glm::vec3 ParticlaDir, glm::vec3 pos, float width, float height, float depth) {
+	this->pos = pos;
+	this->width = width;
+	this->height = height;
+	this->depth = depth;
+	this->ParticlaDir = ParticlaDir;
+	this->partID = counterID++;
+}
+
+inline glm::vec3 Particla::getShipColor() {
+	return shipColor;
+}
+
+inline glm::vec3 Particla::getParticlaDir() {
+	return ParticlaDir;
+}
+
+inline float Particla::getMinX() {
+	return min(pos.x, pos.x + width);
+}
+
+inline float Particla::getMinY() {
+	return min(pos.y, pos.y + height);
+}
+
+inline float Particla::getMinZ() {
+	return min(pos.z, pos.z + depth);
+}
+
+inline float Particla::getMaxX() {
+	return max(pos.x, pos.x + width);
+}
+
+inline float Particla::getMaxY() {
+	return max(pos.y, pos.y + height);
+}
+
+inline float Particla::getMaxZ() {
+	return max(pos.z, pos.z + depth);
+}
+
+inline void Particla::setColorColided(bool isColliding) {
+	if (isColliding)
+		shipColor = glm::vec3(1.0, 0, 0);
+	else
+		shipColor = glm::vec3(0.5, 0.5, 0.5);
+}
+
+inline bool Particla::intersect(Particla b) {
+	//printf("A X%d\n", pos.x);
+	//printf("A Y%d\n", pos.y);
+
+	return (getMinX() <= b.getMaxX() && getMaxX() >= b.getMinX()) &&
+		(getMinY() <= b.getMaxY() && getMaxY() >= b.getMinY()) &&
+		(getMinZ() <= b.getMaxZ() && getMaxZ() >= b.getMinZ());
+}
+
