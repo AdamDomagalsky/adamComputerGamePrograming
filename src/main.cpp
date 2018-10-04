@@ -56,7 +56,7 @@ public:
 	bool intersect(Particla  b);
 };
 
-
+void handleCollisions();
 
 GLuint 
 	programColor,
@@ -132,6 +132,10 @@ struct Particle {
 std::vector<Particle> spaceships;
 
 std::vector<Particla> spaceshipa;
+std::vector<Particla> explodeParticlas;
+std::vector<Particla> bullets;
+
+
 
 void mouseMove(int x, int y)
 {
@@ -179,6 +183,13 @@ void keyboard(unsigned char key, int x, int y)
 	case 'a': cameraPos -= glm::cross(cameraDir, glm::vec3(0,1,0)) * moveSpeed; break;
 	case 'c': cameraPos += glm::cross(cameraDir, glm::vec3(1, 0, 0)) * moveSpeedUpDown; break;
 	case 'v': cameraPos -= glm::cross(cameraDir, glm::vec3(1, 0, 0)) * moveSpeedUpDown; break;
+	case (char)32:
+		int shipWidth = 1;
+		int shipHeight = 1;
+		int shipDepth = 1;
+		Particla bullet(cameraDir, cameraPos + (cameraDir * 3), shipWidth, shipHeight, shipDepth);
+		bullets.push_back(bullet);
+		break;
 	}
 }
 
@@ -501,7 +512,7 @@ void renderScene()
 		//dodanie naszych monetek
 		for (int i = 0; i < coins.size(); i++)
 		{
-			glm::mat4 coinModelMatrix = glm::translate(coins[i]) * createRotationMatrix(time / 2) * glm::translate(glm::vec3(-3, 0, 0)) * glm::scale(glm::vec3(2));
+			glm::mat4 coinModelMatrix = glm::translate(coins[i]) * createRotationMatrix(time / 2) * glm::translate(glm::vec3(-3, 0, 0)) * glm::scale(glm::vec3(0.1f));
 			float d = findDistance(coins[i], mainShipPosition + glm::vec3(0, -2.5, 0));
 			if (d < 1)
 				coins.erase(std::find(coins.begin(), coins.end(), coins[i]));
@@ -654,12 +665,31 @@ void renderScene()
 	int timeSinceStart = glutGet(GLUT_ELAPSED_TIME);
 	int deltaTime = timeSinceStart - oldTimeSinceStart;
 	oldTimeSinceStart = timeSinceStart;
-	/*for (int j = 0; j < bullets.size(); j++) {
-		bullets[j].pos += bullets[j].particleDir * 0.05 * deltaTime;
+	for (int j = 0; j < bullets.size(); j++) {
+		bullets[j].pos += bullets[j].ParticlaDir * 0.05 * deltaTime;
 	}
-	for (int j = 0; j < explodeParticles.size(); j++) {
-		explodeParticles[j].pos += explodeParticles[j].particleDir * 0.0005 * deltaTime;
-	}*/
+	for (int j = 0; j < explodeParticlas.size(); j++) {
+		explodeParticlas[j].pos += explodeParticlas[j].ParticlaDir * 0.0005 * deltaTime;
+	}
+
+	for (int i = 0; i < spaceshipa.size(); i++)
+	{
+		float weightV1 = 0.00001;
+		float weightV2 = 0.0011;
+		float weightV3 = 0.001;
+		glm::vec3 v3 = glm::vec3(0);
+
+		glm::vec3 v1Attract = glm::normalize(shipPath[indexPath] - spaceshipa[i].pos);
+		//glm::vec3 v2Separation = separationV2(spaceshipa[i]);
+		//glm::vec3 v3Alignment = ((sum / spaceshipa.size()) - spaceshipa[i].vel);
+		spaceshipa[i].vel += (weightV1 * v1Attract) /*+ (weightV2 * v2Separation) + (weightV3 * v3Alignment)*/;
+		spaceshipa[i].pos += spaceshipa[i].vel;
+		//printf("x%d\n", spaceshipa[i].pos.x);
+		//printf("y%d\n", spaceshipa[i].pos.y);
+	}
+
+
+	handleCollisions();
 
 	indexPath += sign;
 
@@ -868,3 +898,114 @@ inline bool Particla::intersect(Particla b) {
 }
 
 int Particla::counterID = 0;
+
+
+void handleCollisions() {
+	std::vector<int> toRemoveIndexes;
+	std::vector<int> bullettoRemoveIndexes;
+	std::vector<int> parttoRemoveIndexes;
+
+	for (int i = 0; i < spaceshipa.size(); i++) {
+		Particla shipA = spaceshipa[i];
+		int shipX = shipA.pos.x;
+		int shipY = shipA.pos.y;
+		int shipZ = shipA.pos.z;
+		bool collidedEver = false;
+		for (int j = 0; j < spaceshipa.size(); j++) {
+			Particla shipB = spaceshipa[j];
+			if (shipA.pos != shipB.pos) {
+				bool colliding = shipA.intersect(shipB);
+				if (colliding) {
+					//glm::vec3 bounceOffA = -shipA.vel;
+					//glm::vec3 bounceOffB =  -shipB.vel;
+					//shipA.pos += bounceOffA;
+					//shipA.vel = bounceOffA;
+					//shipB.vel = bounceOffB;
+					//shipB.pos += bounceOffB;
+					shipA.setColorColided(true);
+					shipB.setColorColided(true);
+					//printf("%s\n", "true");
+					collidedEver = true;
+				}
+				else {
+					//printf("%s\n", "false");
+				}
+			}
+		}
+		/*
+		for (int j = 0; j < bullets.size(); j++) {
+			Particla bullet = bullets[j];
+			if (shipA.pos != bullet.pos) {
+				bool colliding = shipA.intersect(bullet);
+				if (colliding) {
+					printf("%s\n", "true");
+					toRemoveIndexes.push_back(i);
+					bullettoRemoveIndexes.push_back(j);
+					createExplosion(shipA.pos, shipA.ParticlaDir);
+				}
+			}
+		}
+		*/
+
+
+		if (!collidedEver) {
+			shipA.setColorColided(false);
+		}
+		glm::mat4 enemyMatrix = glm::translate(shipA.pos) * glm::scale(glm::vec3(1.0f));
+		drawObjectColor(&shipModel, enemyMatrix, shipA.getShipColor());
+	}
+	
+	for (int j = 0; j < explodeParticlas.size(); j++) {
+		Particla part = explodeParticlas[j];
+		int diffTime = oldTimeSinceStart - part.bornTime;
+		//1000 * part.ParticlaLife
+		if (diffTime > part.ParticlaLife)
+		{
+			printf("%d \n", diffTime);
+			parttoRemoveIndexes.push_back(part.partID);
+		}
+	}
+
+	for (int i = 0; i < toRemoveIndexes.size(); i++) {
+		int partID = toRemoveIndexes[i];
+		for (int j = 0; j < spaceshipa.size(); j++) {
+			if (partID == spaceshipa[j].partID)
+			{
+				//printf("%d %d %d %d %d \n", i, j, partID, toRemoveIndexes.size(), spaceshipa.size());
+				spaceshipa.erase(spaceshipa.begin() + j);
+			}
+		}
+	}
+	for (int i = 0; i < bullettoRemoveIndexes.size(); i++) {
+		int partID = bullettoRemoveIndexes[i];
+		for (int j = 0; j < bullets.size(); j++) {
+			if (partID == bullets[j].partID)
+			{
+				//printf("%d %d %d %d %d \n", i, j, partID, bullettoRemoveIndexes.size(), bullets.size());
+				bullets.erase(bullets.begin() + j);
+			}
+		}
+	}
+	for (int i = 0; i < parttoRemoveIndexes.size(); i++) {
+		int partID = parttoRemoveIndexes[i];
+		for (int j = 0; j < explodeParticlas.size(); j++) {
+			if (partID == explodeParticlas[j].partID)
+			{
+				//printf("%d %d %d %d %d \n", i, j, partID, parttoRemoveIndexes.size(),explodeParticlas.size());
+				explodeParticlas.erase(explodeParticlas.begin() + j);
+			}
+		}
+	}
+	for (int j = 0; j < bullets.size(); j++) {
+		Particla bullet = bullets[j];
+		glm::mat4 bulletMatrix = glm::translate(bullet.pos) * glm::scale(glm::vec3(0.75f));
+		drawObjectColor(&sphereModel, bulletMatrix, bullet.getShipColor());
+	}
+
+	for (int j = 0; j < explodeParticlas.size(); j++) {
+		Particla part = explodeParticlas[j];
+		glm::mat4 partMatrix = glm::translate(part.pos) * glm::scale(glm::vec3(0.2f));
+		drawObjectColor(&sphereModel, partMatrix, part.getShipColor());
+	}
+	
+}
