@@ -78,7 +78,6 @@ GLuint
 	cubemapTexture,
 	FramebufferObject;
 
-
 const int font = (int)GLUT_BITMAP_9_BY_15;
 int killed = 0, w, h, cubeMapID, sign = 1, pointCounter = 0, indexPath = 0;//t % shipPath.size();
 
@@ -87,17 +86,15 @@ double t;
 
 std::vector<float> tangent(1203);
 std::vector<glm::vec4> planets;
-std::vector<glm::vec3> coins, shipPath;
+std::vector<glm::vec3> shots, shipPath;
 bool state = true;
 
 Core::Shader_Loader shaderLoader;
 
-
 obj::Model 
 	shipModel,
 	sphereModel,
-	renderModel,
-	coinModel;
+	renderModel;
 
 
 //Camera
@@ -116,17 +113,15 @@ glm::mat4 cameraMatrix(0.0f),
 	lightProjection, 
 	lightView,
 	perspectiveMatrix(0.0f), 
-	rotations[220]; //macierz rotacji BNT - wzd�u� krzywej
+	rotations[220]; //rotation matrix BNT
 
-
-
-//nasze pi�kne cz�steczki
+//Particle structure
 struct Particle {
 	glm::vec3 pos;
 	glm::quat rot;
 
-	glm::vec3 vel; //linMom??
-	glm::vec3 angVel; //AngMom??
+	glm::vec3 vel;
+	glm::vec3 angVel;
 
 	glm::vec3 force;
 	glm::vec3 torque;
@@ -350,7 +345,7 @@ void drawSkybox(GLuint cubemapID)
 	glUseProgram(0);
 }
 
-//wyznaczenie punkt�w na okr�gu
+//create points on circular shape
 void drawCircle(GLfloat x, GLfloat y, GLfloat z, GLfloat radius, GLint numberOfSides)
 {
 	GLint numberOfVertices = numberOfSides + 1;
@@ -376,7 +371,7 @@ void drawCircle(GLfloat x, GLfloat y, GLfloat z, GLfloat radius, GLint numberOfS
 	}
 }
 
-//wyznaczenie wektor�w BNT
+//our wektors BNT
 void parallel_transport() {
 	glm::vec3 tangent[220];
 	glm::vec3 normal[220];
@@ -486,7 +481,7 @@ void renderScene()
 {
 	glm::vec3 sum = glm::vec3(0);
 
-	if (state && coins.size() != 0) {
+	if (state && shots.size() != 0) {
 		float time = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
 		// Aktualizacja macierzy widoku i rzutowania. Macierze sa przechowywane w zmiennych globalnych, bo uzywa ich funkcja drawObject.
 		// (Bardziej elegancko byloby przekazac je jako argumenty do funkcji, ale robimy tak dla uproszczenia kodu.
@@ -501,9 +496,8 @@ void renderScene()
 		setOrthographicProjection();
 		glPushMatrix();
 		glLoadIdentity();
-		//renderBitmapString(100, 100, (void *)font, "Coins: ");
 		std::stringstream ss;
-		ss << "Score: " << 10-coins.size() + killed << "/" << 10;
+		ss << "Score: " << 10-shots.size() + killed << "/" << 10;
 		std::string s = ss.str();
 		const char * c = s.c_str();
 		renderBitmapString(100, 100, (void *)font, c);
@@ -533,18 +527,7 @@ void renderScene()
 		pointCounter++;
 		//Sleep(50);
 
-		//dodanie naszych monetek
-		for (int i = 0; i < coins.size(); i++)
-		{
-			glm::mat4 coinModelMatrix = glm::translate(coins[i]) * createRotationMatrix(time / 2) * glm::translate(glm::vec3(-3, 0, 0)) * glm::scale(glm::vec3(0.1f));
-			float d = findDistance(coins[i], mainShipPosition + glm::vec3(0, -2.5, 0));
-			if (d < 1)
-				coins.erase(std::find(coins.begin(), coins.end(), coins[i]));
-			else
-				drawObjectColor(&coinModel, coinModelMatrix, glm::vec3(1.0f, 1.0f, 1.0f));
-		}
-
-		//przemieszczanie stateczk�w
+		//spaceshipmovement
 		for (int i = 0; i < spaceships.size(); i++)
 		{
 			glm::mat4 shipModelMatrix = glm::translate(spaceships[i].pos) * rotations[pointCounter % 220] * glm::scale(glm::vec3(0.10f));
@@ -640,7 +623,7 @@ void renderScene()
 				state = false;
 		}
 	} else 
-	if (coins.size() == 0) {
+	if (shots.size() == 0) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glClearColor(0.0f, 0.3f, 0.3f, 1.0f);
 
@@ -678,13 +661,9 @@ void renderScene()
 		glm::vec3 v3 = glm::vec3(0);
 
 		glm::vec3 v1Attract = glm::normalize(shipPath[indexPath] - spaceships[i].pos);
-		//glm::vec3 v2Separation = separationV2(spaceships[i]);
-		//glm::vec3 v3Alignment = ((sum / spaceships.size()) - spaceships[i].vel);
 		spaceships[i].vel += (weightV1 * v1Attract) /*+ (weightV2 * v2Separation) + (weightV3 * v3Alignment)*/;
 		spaceships[i].pos += spaceships[i].vel;
-		//printf("x%d\n", spaceships[i].pos.x);
-		//printf("y%d\n", spaceships[i].pos.y);
-	}
+		
 	int timeSinceStart = glutGet(GLUT_ELAPSED_TIME);
 	int deltaTime = timeSinceStart - oldTimeSinceStart;
 	oldTimeSinceStart = timeSinceStart;
@@ -739,12 +718,11 @@ void init()
 	programSkybox = shaderLoader.CreateProgram("shaders/sky_box.vert", "shaders/sky_box.frag");
 	sphereModel = obj::loadModelFromFile("models/sphere.obj");
 	shipModel = obj::loadModelFromFile("models/spaceship.obj");
-	textureAsteroid = Core::LoadTexture("textures/asteroid2.png");
+	textureAsteroid = Core::LoadTexture("textures/flatsquare.png");
 	renderModel = obj::loadModelFromFile("models/render.obj");
-	coinModel = obj::loadModelFromFile("models/oldcoin.obj");
 	textureEarth = Core::LoadTexture("textures/earth.png");
 	textureEarthNormal = Core::LoadTexture("textures/earth_normalmap.png");
-	cubeMapID = Core::setupCubeMap("textures/xpos.png", "textures/xneg.png", "textures/ypos.png", "textures/yneg.png", "textures/zpos.png", "textures/zneg.png");
+	cubeMapID = Core::setupCubeMap("textures/xposgem.png", "textures/xneggem.png", "textures/yposgem.png", "textures/yneggem.png", "textures/zposgem.png", "textures/zneggem.png");
 
 	//std::vector<float> unitY = { 0.0, 1.0, 0.0 };
 	//std::vector<float> unitX = { 1.0, 0.0, 0.0 };
@@ -794,7 +772,7 @@ void init()
 			position = glm::vec3(xpos, ypos, zpos);
 			d = findDistance(glm::vec3(-1, 2, -1), position);
 		}
-		coins.push_back(position);
+		shots.push_back(position);
 	}
 
 	drawCircle(0, 3, 0, 5, 219);
@@ -919,9 +897,6 @@ inline void Particla::setColorColided(bool isColliding) {
 }
 
 inline bool Particla::intersect(Particla b) {
-	//printf("A X%d\n", pos.x);
-	//printf("A Y%d\n", pos.y);
-
 	return (getMinX() <= b.getMaxX() && getMaxX() >= b.getMinX()) &&
 		(getMinY() <= b.getMaxY() && getMaxY() >= b.getMinY()) &&
 		(getMinZ() <= b.getMaxZ() && getMaxZ() >= b.getMinZ());
@@ -991,7 +966,6 @@ void handleCollisions() {
 	for (int j = 0; j < explodeParticlas.size(); j++) {
 		Particla part = explodeParticlas[j];
 		int diffTime = oldTimeSinceStart - part.bornTime;
-		//1000 * part.ParticlaLife
 		if (diffTime > part.ParticlaLife)
 		{
 			printf("%d \n", diffTime);
@@ -1004,7 +978,6 @@ void handleCollisions() {
 		for (int j = 0; j < spaceshipa.size(); j++) {
 			if (partID == spaceshipa[j].partID)
 			{
-				//printf("%d %d %d %d %d \n", i, j, partID, toRemoveIndexes.size(), spaceshipa.size());
 				spaceshipa.erase(spaceshipa.begin() + j);
 			}
 		}
@@ -1014,7 +987,6 @@ void handleCollisions() {
 		for (int j = 0; j < bullets.size(); j++) {
 			if (partID == bullets[j].partID)
 			{
-				//printf("%d %d %d %d %d \n", i, j, partID, bullettoRemoveIndexes.size(), bullets.size());
 				bullets.erase(bullets.begin() + j);
 			}
 		}
@@ -1024,7 +996,6 @@ void handleCollisions() {
 		for (int j = 0; j < explodeParticlas.size(); j++) {
 			if (partID == explodeParticlas[j].partID)
 			{
-				//printf("%d %d %d %d %d \n", i, j, partID, parttoRemoveIndexes.size(),explodeParticlas.size());
 				explodeParticlas.erase(explodeParticlas.begin() + j);
 			}
 		}

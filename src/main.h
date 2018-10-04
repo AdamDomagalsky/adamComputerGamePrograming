@@ -17,7 +17,7 @@ glm::mat4 createTranslationMatrixXYZ(float X, float Y, float Z) {
 	return translationMatrix;
 }
 
-//find distance between two points
+//find distance!!!
 float findDistance(glm::vec3 A, glm::vec3 B) {
 	float dx, dy, dz, d;
 	dx = A.x - B.x;
@@ -27,12 +27,12 @@ float findDistance(glm::vec3 A, glm::vec3 B) {
 	return sqrt(d);
 }
 
+//catmullromek needs ALWAYS 4 points
 std::vector<glm::vec3> generatePoints(glm::vec4 v1, glm::vec4 v2, glm::vec4 v3, glm::vec4 v4, float diff) {
 	std::vector<glm::vec3> points;
 	for (float i = 0; i < 1; i += diff) {
 		glm::vec3 catmullVec = glm::catmullRom(v1, v2, v3, v4, i);
 		points.push_back(catmullVec);
-		//printf("hermite vect %f %f %f\n", catmullVec.x, catmullVec.y, catmullVec.z);
 	}
 	//printf("size %d generated", points.size());
 	return points;
