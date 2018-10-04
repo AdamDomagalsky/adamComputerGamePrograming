@@ -57,3 +57,12 @@ glm::mat4 Core::createViewMatrix(glm::vec3 position, float yaw, float pitch, flo
 
 	return M;
 }
+
+
+glm::mat4 Core::createViewMatrixQuat(glm::vec3 position, glm::quat rotation)
+{
+	glm::mat4 cameraTranslation;
+	cameraTranslation[3] = glm::vec4(-position, 1.0f);
+
+	return glm::mat4_cast(rotation) * cameraTranslation;
+}

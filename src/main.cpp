@@ -16,6 +16,13 @@
 
 #define min(a,b)            (((a) < (b)) ? (a) : (b))
 #define max(a,b)            (((a) > (b)) ? (a) : (b))
+
+glm::quat rotation = glm::quat(1, 0, 0, 0);
+glm::vec3 rotationChangeXYZ = glm::vec3(0, 0, 0);
+glm::vec3 cameraSide;
+
+
+
 //#include "Particle.h"
 //#include "Particle.cpp"
 class Particla
@@ -57,6 +64,7 @@ public:
 };
 
 void handleCollisions();
+bool FPS = true;
 
 GLuint 
 	programColor,
@@ -75,7 +83,7 @@ GLuint
 
 
 const int font = (int)GLUT_BITMAP_9_BY_15;
-int w, h, cubeMapID, sign = 1, pointCounter = 0, indexPath = 0;//t % shipPath.size();
+int killed = 0, w, h, cubeMapID, sign = 1, pointCounter = 0, indexPath = 0;//t % shipPath.size();
 
 char s[30];
 double t;
@@ -136,7 +144,6 @@ std::vector<Particla> explodeParticlas;
 std::vector<Particla> bullets;
 
 
-
 void mouseMove(int x, int y)
 {
 	float sen = 0.05;
@@ -164,6 +171,9 @@ void mouseMove(int x, int y)
 		cameraAngleY -= sen;
 	}
 
+	rotationChangeXYZ.y = 0.1f*(x - oldX)-sen;
+	rotationChangeXYZ.x = 0.1f*(y - oldY)-sen;
+
 	oldX = x;
 	oldY = y;
 }
@@ -175,8 +185,9 @@ void keyboard(unsigned char key, int x, int y)
 	float moveSpeedUpDown = 0.3f;
 	switch(key)
 	{
-	case 'z': cameraAngle -= angleSpeed; break;
-	case 'x': cameraAngle += angleSpeed; break;
+	case 'p': FPS = !FPS; break;
+	case 'z': cameraAngle -= angleSpeed; rotationChangeXYZ.z += 0.1f; break;
+	case 'x': cameraAngle += angleSpeed; rotationChangeXYZ.z -= 0.1f; break;
 	case 'w': cameraPos += cameraDir * moveSpeed; break;
 	case 's': cameraPos -= cameraDir * moveSpeed; break;
 	case 'd': cameraPos += glm::cross(cameraDir, glm::vec3(0,1,0)) * moveSpeed; break;
@@ -184,7 +195,7 @@ void keyboard(unsigned char key, int x, int y)
 	case 'c': cameraPos += glm::cross(cameraDir, glm::vec3(1, 0, 0)) * moveSpeedUpDown; break;
 	case 'v': cameraPos -= glm::cross(cameraDir, glm::vec3(1, 0, 0)) * moveSpeedUpDown; break;
 	case (char)32:
-		int shipWidth = 1;
+		int shipWidth = 10;
 		int shipHeight = 1;
 		int shipDepth = 1;
 		Particla bullet(cameraDir, cameraPos + (cameraDir * 3), shipWidth, shipHeight, shipDepth);
@@ -193,11 +204,26 @@ void keyboard(unsigned char key, int x, int y)
 	}
 }
 
+
 glm::mat4 createCameraMatrix()
 {
-	cameraDir = glm::vec3(cosf(cameraAngleX), 0.0f, sinf(cameraAngleX));
+	if (FPS) {
 
-	return Core::createViewMatrix(cameraPos, yaw, pitch, roll);
+		glm::quat rotationChange = glm::quat(rotationChangeXYZ);
+		rotation = rotationChange * rotation;
+		rotation = glm::normalize(rotation);
+		rotationChangeXYZ = glm::vec3(0);
+		cameraDir = glm::inverse(rotation) * glm::vec3(0, 0, -1);
+		cameraSide = glm::inverse(rotation) * glm::vec3(1, 0, 0);
+
+		return Core::createViewMatrixQuat(cameraPos, rotation);
+	}
+	else {
+		cameraDir = glm::vec3(cosf(cameraAngleX), 0.0f, sinf(cameraAngleX));
+		
+		return Core::createViewMatrix(cameraPos, yaw, pitch, roll);
+	}
+	
 }
 
 void drawObjectColor(obj::Model * model, glm::mat4 modelMatrix, glm::vec3 color)
@@ -444,6 +470,11 @@ void initialise_particles(int qty)
 		Particla enemy(glm::vec3(1 + i, i + 1, 1 + i), WDH, WDH, WDH);
 		spaceshipa.push_back(enemy);
 	}
+	/*
+	for (int i = 1; i <= 10; i++) {
+		Particla enemy(glm::vec3(1 + i, i + 1, 1 + i), WDH, WDH, WDH);
+		spaceshipa.push_back(enemy);
+	}*/
 	for (int i = 0; i < qty; i++) {
 
 		Particle x;
@@ -479,7 +510,7 @@ void renderScene()
 		glLoadIdentity();
 		//renderBitmapString(100, 100, (void *)font, "Coins: ");
 		std::stringstream ss;
-		ss << "Coins: " << 10-coins.size() << "/" << 10;
+		ss << "Score: " << 10-coins.size() + killed << "/" << 10;
 		std::string s = ss.str();
 		const char * c = s.c_str();
 		renderBitmapString(100, 100, (void *)font, c);
@@ -899,7 +930,21 @@ inline bool Particla::intersect(Particla b) {
 
 int Particla::counterID = 0;
 
-
+void createExplosion(glm::vec3 accPos, glm::vec3 bulletDir) {
+	for (int i = 0; i < 15; i++)
+	{
+		int randomNumberx = (rand() % 5);
+		int randomNumbery = (rand() % 5);
+		int randomNumberz = (rand() % 5);
+		glm::vec3 partDir;
+		partDir.x = bulletDir.x + randomNumberx;
+		partDir.y = bulletDir.y + randomNumbery;
+		partDir.z = bulletDir.z + randomNumberz;
+		Particla partOfShip(partDir, accPos + (partDir * 3), 0, 0, 0);
+		partOfShip.bornTime = oldTimeSinceStart;
+		explodeParticlas.push_back(partOfShip);
+	}
+}
 void handleCollisions() {
 	std::vector<int> toRemoveIndexes;
 	std::vector<int> bullettoRemoveIndexes;
@@ -916,23 +961,13 @@ void handleCollisions() {
 			if (shipA.pos != shipB.pos) {
 				bool colliding = shipA.intersect(shipB);
 				if (colliding) {
-					//glm::vec3 bounceOffA = -shipA.vel;
-					//glm::vec3 bounceOffB =  -shipB.vel;
-					//shipA.pos += bounceOffA;
-					//shipA.vel = bounceOffA;
-					//shipB.vel = bounceOffB;
-					//shipB.pos += bounceOffB;
 					shipA.setColorColided(true);
 					shipB.setColorColided(true);
-					//printf("%s\n", "true");
 					collidedEver = true;
-				}
-				else {
-					//printf("%s\n", "false");
 				}
 			}
 		}
-		/*
+		
 		for (int j = 0; j < bullets.size(); j++) {
 			Particla bullet = bullets[j];
 			if (shipA.pos != bullet.pos) {
@@ -942,11 +977,11 @@ void handleCollisions() {
 					toRemoveIndexes.push_back(i);
 					bullettoRemoveIndexes.push_back(j);
 					createExplosion(shipA.pos, shipA.ParticlaDir);
+					killed++;
 				}
 			}
 		}
-		*/
-
+		
 
 		if (!collidedEver) {
 			shipA.setColorColided(false);
