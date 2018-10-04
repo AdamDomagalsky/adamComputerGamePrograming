@@ -669,22 +669,10 @@ void renderScene()
 	{
 		sum += spaceships[j].vel;
 	}
+	
 
-	for (int i = 0; i < spaceships.size(); i++)
-	{
-		float weightV1 = 0.00001;
-		float weightV2 = 0.0011;
-		float weightV3 = 0.001;
-		glm::vec3 v3 = glm::vec3(0);
 
-		glm::vec3 v1Attract = glm::normalize(shipPath[indexPath] - spaceships[i].pos);
-		//glm::vec3 v2Separation = separationV2(spaceships[i]);
-		//glm::vec3 v3Alignment = ((sum / spaceships.size()) - spaceships[i].vel);
-		spaceships[i].vel += (weightV1 * v1Attract) /*+ (weightV2 * v2Separation) + (weightV3 * v3Alignment)*/;
-		spaceships[i].pos += spaceships[i].vel;
-		//printf("x%d\n", spaceships[i].pos.x);
-		//printf("y%d\n", spaceships[i].pos.y);
-	}
+
 	int timeSinceStart = glutGet(GLUT_ELAPSED_TIME);
 	int deltaTime = timeSinceStart - oldTimeSinceStart;
 	oldTimeSinceStart = timeSinceStart;
@@ -930,7 +918,7 @@ inline bool Particla::intersect(Particla b) {
 int Particla::counterID = 0;
 
 void createExplosion(glm::vec3 accPos, glm::vec3 bulletDir) {
-	for (int i = 0; i < 15; i++)
+	for (int i = 0; i < 5; i++)
 	{
 		int randomNumberx = (rand() % 5);
 		int randomNumbery = (rand() % 5);
