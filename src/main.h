@@ -34,6 +34,6 @@ std::vector<glm::vec3> generatePoints(glm::vec4 v1, glm::vec4 v2, glm::vec4 v3, 
 		points.push_back(catmullVec);
 		//printf("hermite vect %f %f %f\n", catmullVec.x, catmullVec.y, catmullVec.z);
 	}
-	printf("size %d generated", points.size());
+	//printf("size %d generated", points.size());
 	return points;
 }
