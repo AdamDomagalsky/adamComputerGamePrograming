@@ -16,6 +16,13 @@
 
 #define min(a,b)            (((a) < (b)) ? (a) : (b))
 #define max(a,b)            (((a) > (b)) ? (a) : (b))
+
+glm::quat rotation = glm::quat(1, 0, 0, 0);
+glm::vec3 rotationChangeXYZ = glm::vec3(0, 0, 0);
+glm::vec3 cameraSide;
+
+
+
 //#include "Particle.h"
 //#include "Particle.cpp"
 class Particla
@@ -56,7 +63,8 @@ public:
 	bool intersect(Particla  b);
 };
 
-
+void handleCollisions();
+bool FPS = true;
 
 GLuint 
 	programColor,
@@ -75,7 +83,7 @@ GLuint
 
 
 const int font = (int)GLUT_BITMAP_9_BY_15;
-int w, h, cubeMapID, sign = 1, pointCounter = 0, indexPath = 0;//t % shipPath.size();
+int killed = 0, w, h, cubeMapID, sign = 1, pointCounter = 0, indexPath = 0;//t % shipPath.size();
 
 char s[30];
 double t;
@@ -132,6 +140,9 @@ struct Particle {
 std::vector<Particle> spaceships;
 
 std::vector<Particla> spaceshipa;
+std::vector<Particla> explodeParticlas;
+std::vector<Particla> bullets;
+
 
 void mouseMove(int x, int y)
 {
@@ -160,6 +171,9 @@ void mouseMove(int x, int y)
 		cameraAngleY -= sen;
 	}
 
+	rotationChangeXYZ.y = 0.1f*(x - oldX)-sen;
+	rotationChangeXYZ.x = 0.1f*(y - oldY)-sen;
+
 	oldX = x;
 	oldY = y;
 }
@@ -171,22 +185,45 @@ void keyboard(unsigned char key, int x, int y)
 	float moveSpeedUpDown = 0.3f;
 	switch(key)
 	{
-	case 'z': cameraAngle -= angleSpeed; break;
-	case 'x': cameraAngle += angleSpeed; break;
+	case 'p': FPS = !FPS; break;
+	case 'z': cameraAngle -= angleSpeed; rotationChangeXYZ.z += 0.1f; break;
+	case 'x': cameraAngle += angleSpeed; rotationChangeXYZ.z -= 0.1f; break;
 	case 'w': cameraPos += cameraDir * moveSpeed; break;
 	case 's': cameraPos -= cameraDir * moveSpeed; break;
 	case 'd': cameraPos += glm::cross(cameraDir, glm::vec3(0,1,0)) * moveSpeed; break;
 	case 'a': cameraPos -= glm::cross(cameraDir, glm::vec3(0,1,0)) * moveSpeed; break;
 	case 'c': cameraPos += glm::cross(cameraDir, glm::vec3(1, 0, 0)) * moveSpeedUpDown; break;
 	case 'v': cameraPos -= glm::cross(cameraDir, glm::vec3(1, 0, 0)) * moveSpeedUpDown; break;
+	case (char)32:
+		int shipWidth = 10;
+		int shipHeight = 1;
+		int shipDepth = 1;
+		Particla bullet(cameraDir, cameraPos + (cameraDir * 3), shipWidth, shipHeight, shipDepth);
+		bullets.push_back(bullet);
+		break;
 	}
 }
 
+
 glm::mat4 createCameraMatrix()
 {
-	cameraDir = glm::vec3(cosf(cameraAngleX), 0.0f, sinf(cameraAngleX));
+	if (FPS) {
 
-	return Core::createViewMatrix(cameraPos, yaw, pitch, roll);
+		glm::quat rotationChange = glm::quat(rotationChangeXYZ);
+		rotation = rotationChange * rotation;
+		rotation = glm::normalize(rotation);
+		rotationChangeXYZ = glm::vec3(0);
+		cameraDir = glm::inverse(rotation) * glm::vec3(0, 0, -1);
+		cameraSide = glm::inverse(rotation) * glm::vec3(1, 0, 0);
+
+		return Core::createViewMatrixQuat(cameraPos, rotation);
+	}
+	else {
+		cameraDir = glm::vec3(cosf(cameraAngleX), 0.0f, sinf(cameraAngleX));
+		
+		return Core::createViewMatrix(cameraPos, yaw, pitch, roll);
+	}
+	
 }
 
 void drawObjectColor(obj::Model * model, glm::mat4 modelMatrix, glm::vec3 color)
@@ -433,6 +470,11 @@ void initialise_particles(int qty)
 		Particla enemy(glm::vec3(1 + i, i + 1, 1 + i), WDH, WDH, WDH);
 		spaceshipa.push_back(enemy);
 	}
+	/*
+	for (int i = 1; i <= 10; i++) {
+		Particla enemy(glm::vec3(1 + i, i + 1, 1 + i), WDH, WDH, WDH);
+		spaceshipa.push_back(enemy);
+	}*/
 	for (int i = 0; i < qty; i++) {
 
 		Particle x;
@@ -468,7 +510,7 @@ void renderScene()
 		glLoadIdentity();
 		//renderBitmapString(100, 100, (void *)font, "Coins: ");
 		std::stringstream ss;
-		ss << "Coins: " << 10-coins.size() << "/" << 10;
+		ss << "Score: " << 10-coins.size() + killed << "/" << 10;
 		std::string s = ss.str();
 		const char * c = s.c_str();
 		renderBitmapString(100, 100, (void *)font, c);
@@ -501,7 +543,7 @@ void renderScene()
 		//dodanie naszych monetek
 		for (int i = 0; i < coins.size(); i++)
 		{
-			glm::mat4 coinModelMatrix = glm::translate(coins[i]) * createRotationMatrix(time / 2) * glm::translate(glm::vec3(-3, 0, 0)) * glm::scale(glm::vec3(2));
+			glm::mat4 coinModelMatrix = glm::translate(coins[i]) * createRotationMatrix(time / 2) * glm::translate(glm::vec3(-3, 0, 0)) * glm::scale(glm::vec3(0.1f));
 			float d = findDistance(coins[i], mainShipPosition + glm::vec3(0, -2.5, 0));
 			if (d < 1)
 				coins.erase(std::find(coins.begin(), coins.end(), coins[i]));
@@ -654,12 +696,31 @@ void renderScene()
 	int timeSinceStart = glutGet(GLUT_ELAPSED_TIME);
 	int deltaTime = timeSinceStart - oldTimeSinceStart;
 	oldTimeSinceStart = timeSinceStart;
-	/*for (int j = 0; j < bullets.size(); j++) {
-		bullets[j].pos += bullets[j].particleDir * 0.05 * deltaTime;
+	for (int j = 0; j < bullets.size(); j++) {
+		bullets[j].pos += bullets[j].ParticlaDir * 0.05 * deltaTime;
 	}
-	for (int j = 0; j < explodeParticles.size(); j++) {
-		explodeParticles[j].pos += explodeParticles[j].particleDir * 0.0005 * deltaTime;
-	}*/
+	for (int j = 0; j < explodeParticlas.size(); j++) {
+		explodeParticlas[j].pos += explodeParticlas[j].ParticlaDir * 0.0005 * deltaTime;
+	}
+
+	for (int i = 0; i < spaceshipa.size(); i++)
+	{
+		float weightV1 = 0.00001;
+		float weightV2 = 0.0011;
+		float weightV3 = 0.001;
+		glm::vec3 v3 = glm::vec3(0);
+
+		glm::vec3 v1Attract = glm::normalize(shipPath[indexPath] - spaceshipa[i].pos);
+		//glm::vec3 v2Separation = separationV2(spaceshipa[i]);
+		//glm::vec3 v3Alignment = ((sum / spaceshipa.size()) - spaceshipa[i].vel);
+		spaceshipa[i].vel += (weightV1 * v1Attract) /*+ (weightV2 * v2Separation) + (weightV3 * v3Alignment)*/;
+		spaceshipa[i].pos += spaceshipa[i].vel;
+		//printf("x%d\n", spaceshipa[i].pos.x);
+		//printf("y%d\n", spaceshipa[i].pos.y);
+	}
+
+
+	handleCollisions();
 
 	indexPath += sign;
 
@@ -868,3 +929,118 @@ inline bool Particla::intersect(Particla b) {
 }
 
 int Particla::counterID = 0;
+
+void createExplosion(glm::vec3 accPos, glm::vec3 bulletDir) {
+	for (int i = 0; i < 15; i++)
+	{
+		int randomNumberx = (rand() % 5);
+		int randomNumbery = (rand() % 5);
+		int randomNumberz = (rand() % 5);
+		glm::vec3 partDir;
+		partDir.x = bulletDir.x + randomNumberx;
+		partDir.y = bulletDir.y + randomNumbery;
+		partDir.z = bulletDir.z + randomNumberz;
+		Particla partOfShip(partDir, accPos + (partDir * 3), 0, 0, 0);
+		partOfShip.bornTime = oldTimeSinceStart;
+		explodeParticlas.push_back(partOfShip);
+	}
+}
+void handleCollisions() {
+	std::vector<int> toRemoveIndexes;
+	std::vector<int> bullettoRemoveIndexes;
+	std::vector<int> parttoRemoveIndexes;
+
+	for (int i = 0; i < spaceshipa.size(); i++) {
+		Particla shipA = spaceshipa[i];
+		int shipX = shipA.pos.x;
+		int shipY = shipA.pos.y;
+		int shipZ = shipA.pos.z;
+		bool collidedEver = false;
+		for (int j = 0; j < spaceshipa.size(); j++) {
+			Particla shipB = spaceshipa[j];
+			if (shipA.pos != shipB.pos) {
+				bool colliding = shipA.intersect(shipB);
+				if (colliding) {
+					shipA.setColorColided(true);
+					shipB.setColorColided(true);
+					collidedEver = true;
+				}
+			}
+		}
+		
+		for (int j = 0; j < bullets.size(); j++) {
+			Particla bullet = bullets[j];
+			if (shipA.pos != bullet.pos) {
+				bool colliding = shipA.intersect(bullet);
+				if (colliding) {
+					printf("%s\n", "true");
+					toRemoveIndexes.push_back(i);
+					bullettoRemoveIndexes.push_back(j);
+					createExplosion(shipA.pos, shipA.ParticlaDir);
+					killed++;
+				}
+			}
+		}
+		
+
+		if (!collidedEver) {
+			shipA.setColorColided(false);
+		}
+		glm::mat4 enemyMatrix = glm::translate(shipA.pos) * glm::scale(glm::vec3(1.0f));
+		drawObjectColor(&shipModel, enemyMatrix, shipA.getShipColor());
+	}
+	
+	for (int j = 0; j < explodeParticlas.size(); j++) {
+		Particla part = explodeParticlas[j];
+		int diffTime = oldTimeSinceStart - part.bornTime;
+		//1000 * part.ParticlaLife
+		if (diffTime > part.ParticlaLife)
+		{
+			printf("%d \n", diffTime);
+			parttoRemoveIndexes.push_back(part.partID);
+		}
+	}
+
+	for (int i = 0; i < toRemoveIndexes.size(); i++) {
+		int partID = toRemoveIndexes[i];
+		for (int j = 0; j < spaceshipa.size(); j++) {
+			if (partID == spaceshipa[j].partID)
+			{
+				//printf("%d %d %d %d %d \n", i, j, partID, toRemoveIndexes.size(), spaceshipa.size());
+				spaceshipa.erase(spaceshipa.begin() + j);
+			}
+		}
+	}
+	for (int i = 0; i < bullettoRemoveIndexes.size(); i++) {
+		int partID = bullettoRemoveIndexes[i];
+		for (int j = 0; j < bullets.size(); j++) {
+			if (partID == bullets[j].partID)
+			{
+				//printf("%d %d %d %d %d \n", i, j, partID, bullettoRemoveIndexes.size(), bullets.size());
+				bullets.erase(bullets.begin() + j);
+			}
+		}
+	}
+	for (int i = 0; i < parttoRemoveIndexes.size(); i++) {
+		int partID = parttoRemoveIndexes[i];
+		for (int j = 0; j < explodeParticlas.size(); j++) {
+			if (partID == explodeParticlas[j].partID)
+			{
+				//printf("%d %d %d %d %d \n", i, j, partID, parttoRemoveIndexes.size(),explodeParticlas.size());
+				explodeParticlas.erase(explodeParticlas.begin() + j);
+			}
+		}
+	}
+	for (int j = 0; j < bullets.size(); j++) {
+		Particla bullet = bullets[j];
+		glm::mat4 bulletMatrix = glm::translate(bullet.pos) * glm::scale(glm::vec3(0.75f));
+		drawObjectColor(&sphereModel, bulletMatrix, bullet.getShipColor());
+	}
+
+	for (int j = 0; j < explodeParticlas.size(); j++) {
+		Particla part = explodeParticlas[j];
+		glm::mat4 partMatrix = glm::translate(part.pos) * glm::scale(glm::vec3(0.2f));
+		drawObjectColor(&sphereModel, partMatrix, part.getShipColor());
+	}
+	
+}
